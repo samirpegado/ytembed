@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="origin" />
+  <title>YT Embed</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, Arial, sans-serif;
+    }
+    .wrap {
+      position: fixed;
+      inset: 0;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .err {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 20px;
+    }
+    a.btn {
+      color: #0af;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap"></div>
+
+  <script>
+    // --- Função que extrai o ID do vídeo ---
+    function extractVideoId(url) {
+      try {
+        const u = new URL(url, window.location.href);
+        const host = u.hostname.replace(/^www\./, '');
+        if (host === 'youtu.be') return u.pathname.split('/')[1] || null;
+        if (host.endsWith('youtube.com')) {
+          if (u.pathname === '/watch') return u.searchParams.get('v');
+          const seg = u.pathname.split('/').filter(Boolean);
+          const iShorts = seg.indexOf('shorts');
+          if (iShorts >= 0 && seg[iShorts + 1]) return seg[iShorts + 1];
+          const iEmbed = seg.indexOf('embed');
+          if (iEmbed >= 0 && seg[iEmbed + 1]) return seg[iEmbed + 1];
+        }
+      } catch (e) {}
+      const m = (url || '').match(/([A-Za-z0-9_-]{11})(?!.*[A-Za-z0-9_-])/);
+      return m ? m[1] : null;
+    }
+
+    // --- Recupera o parâmetro id ---
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('id') || '';
+    const id = extractVideoId(raw);
+    const wrap = document.getElementById('wrap');
+
+    if (!id) {
+      wrap.innerHTML = '<div class="err">Vídeo inválido.</div>';
+    } else {
+      const src = `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&modestbranding=1&controls=1`;
+      wrap.innerHTML = `
+        <iframe
+          src="${src}"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowfullscreen
+          referrerpolicy="origin">
+        </iframe>`;
+
+      // Fallback se o player falhar
+      setTimeout(() => {
+        const iframe = wrap.querySelector('iframe');
+        if (!iframe || !iframe.contentWindow) {
+          wrap.innerHTML = `
+            <div class="err">
+              Vídeo indisponível para incorporação.<br />
+              <a class="btn" href="https://youtu.be/${id}" target="_blank" rel="noopener">
+                Abrir no YouTube
+              </a>
+            </div>`;
+        }
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
